@@ -16,6 +16,63 @@ namespace DataAcess.Data
         {
             base.OnModelCreating(modelBuilder);
 
+
+            modelBuilder.Entity<CategoryEntity>(entity =>
+            {
+                entity.ToTable("tbl_categories"); 
+                entity.HasKey(e => e.Id); 
+
+                entity.Property(e => e.Name)
+                    .IsRequired() 
+                    .HasMaxLength(200); 
+
+                entity.Property(e => e.Image)
+                    .HasMaxLength(200) 
+                    .HasDefaultValue(string.Empty); 
+            });
+
+            modelBuilder.Entity<Product>(entity =>
+            {
+                entity.HasKey(e => e.Id); 
+
+                entity.Property(e => e.Name)
+                    .IsRequired() 
+                    .HasMaxLength(200); 
+
+                entity.Property(e => e.Price)
+                    .HasColumnType("decimal(18,2)"); 
+
+                entity.HasOne(e => e.Category) 
+                    .WithMany() 
+                    .HasForeignKey(e => e.CategoryId) 
+                    .OnDelete(DeleteBehavior.Cascade); 
+
+                entity.HasMany(e => e.ProductImages) 
+                    .WithOne(p => p.Product) 
+                    .HasForeignKey(p => p.ProductId) 
+                    .OnDelete(DeleteBehavior.Cascade); 
+            });
+
+            modelBuilder.Entity<ProductImage>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Image)
+                    .IsRequired()
+                    .HasMaxLength(500); 
+                entity.Property(e => e.Priotity)
+                    .IsRequired();
+
+                entity.HasOne(e => e.Product) 
+                    .WithMany(p => p.ProductImages) 
+                    .HasForeignKey(e => e.ProductId) 
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+       
+
+
+          
             // product
             modelBuilder.Entity<Product>()
                 .HasMany(p => p.ProductImages)
