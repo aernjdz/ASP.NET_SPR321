@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34622.214
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebHulk", "WebHulk\WebHulk.csproj", "{73F27671-4C30-4ECF-88D9-75363F781756}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataAcess", "DataAcess\DataAcess.csproj", "{49040E95-C111-4053-B8A1-69761DDB8C83}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{73F27671-4C30-4ECF-88D9-75363F781756}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{73F27671-4C30-4ECF-88D9-75363F781756}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{73F27671-4C30-4ECF-88D9-75363F781756}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{73F27671-4C30-4ECF-88D9-75363F781756}.Release|Any CPU.Build.0 = Release|Any CPU
+		{49040E95-C111-4053-B8A1-69761DDB8C83}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{49040E95-C111-4053-B8A1-69761DDB8C83}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{49040E95-C111-4053-B8A1-69761DDB8C83}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{49040E95-C111-4053-B8A1-69761DDB8C83}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {646B246A-E19E-4FC4-B51A-21EADB5C7835}
+	EndGlobalSection
+EndGlobal

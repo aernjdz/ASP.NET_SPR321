@@ -1,0 +1,41 @@
+﻿﻿@using System.Diagnostics
+@model ProductHomeViewModel
+
+@{
+    Stopwatch stopWatch = new Stopwatch();
+    stopWatch.Start();
+}
+
+<div class="container mt-3 mb-5">
+    <h2 class="text-center mb-4">Products</h2>
+
+    @await Html.PartialAsync("_ProductSearchItems", Model.Search)
+    
+    <h5 class="mt-3 text-secondary">All records: @Model.Count</h5>
+    @await Html.PartialAsync("_PaginationProducts", Model)
+
+    @if (Model.Products.Any())
+    {
+        @await Html.PartialAsync("_ListProducts", Model.Products)
+    }
+    else
+    {
+        <div class="alert alert-primary mt-3">
+            No data were found :,(
+        </div>
+    }
+
+    @await Html.PartialAsync("_PaginationProducts", Model)
+</div>
+
+
+@{
+    stopWatch.Stop();
+    TimeSpan ts = stopWatch.Elapsed;
+
+    string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
+        ts.Hours, ts.Minutes, ts.Seconds,
+        ts.Milliseconds / 10);
+
+    Console.WriteLine("RunTime ProductsController Index View - " + elapsedTime);
+}
