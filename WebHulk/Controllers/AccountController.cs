@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using WebHulk.Models.Account;
+using BusinessLogic.Basic.Models.Account;
 using DataAcess.Constants;
 using DataAcess.Data.Entities.Identity;
 using Microsoft.AspNetCore.Authorization;

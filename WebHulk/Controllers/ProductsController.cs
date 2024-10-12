@@ -1,11 +1,11 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using DataAcess.Data;
-using WebHulk.Models.Products;
+using BusinessLogic.Basic.Models.Products;
 using AutoMapper.QueryableExtensions;
 using System.Diagnostics;
-using WebHulk.Models.Categories;
-using WebHulk.Interfaces;
+using BusinessLogic.Basic.Models.Categories;
+using BusinessLogic.Basic.Interfaces;
 namespace WebHulk.Controllers
 {
     public class ProductsController : Controller

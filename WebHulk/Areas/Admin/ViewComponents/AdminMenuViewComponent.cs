@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using DataAcess.Data.Entities.Identity;
-using WebHulk.Areas.Admin.Models.Profile;
+using BusinessLogic.Admin.Models.Profile;
 
 namespace WebHulk.Areas.Admin.ViewComponents
 {

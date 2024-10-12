@@ -2,8 +2,8 @@
 using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using WebHulk.Areas.Admin.Interfaces;
-using WebHulk.Areas.Admin.Models.Category;
+using BusinessLogic.Admin.Interfaces;
+using BusinessLogic.Admin.Models.Category;
 using DataAcess.Constants;
 
 

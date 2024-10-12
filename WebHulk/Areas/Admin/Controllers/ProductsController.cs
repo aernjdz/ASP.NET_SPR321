@@ -5,10 +5,10 @@ using DataAcess.Data.Entities;
 using DataAcess.Data;
 using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
-using WebHulk.Areas.Admin.Models.Products;
+using BusinessLogic.Admin.Models.Products;
 using Microsoft.AspNetCore.Authorization;
 using DataAcess.Constants;
-using WebHulk.Areas.Admin.Interfaces;
+using BusinessLogic.Admin.Interfaces;
 
 namespace WebHulk.Areas.Admin.Controllers
 {
