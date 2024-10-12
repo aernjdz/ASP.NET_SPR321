@@ -5,15 +5,15 @@ namespace WebHulk.Areas.Admin.Models.Products
 {
     public class ProductCreateViewModel
     {
-        [Required(ErrorMessage = "Product name is required")]
-        [StringLength(500, ErrorMessage = "Product name should not exceed 500 characters")]
+      //  [Required(ErrorMessage = "Product name is required")]
+     //   [StringLength(500, ErrorMessage = "Product name should not exceed 500 characters")]
         public string Name { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Price is required")]
+   //     [Required(ErrorMessage = "Price is required")]
         public decimal Price { get; set; }
 
         [Display(Name = "Category")]
-        [Required(ErrorMessage = "Choose a category")]
+      //  [Required(ErrorMessage = "Choose a category")]
         public int CategoryId { get; set; }
 
         [Display(Name = "Photo")]
