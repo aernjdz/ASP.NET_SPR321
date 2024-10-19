@@ -4,14 +4,21 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 
-using WebHulk.Areas.Admin.Services;
 using DataAcess.Data;
 using DataAcess.Data.Entities.Identity;
 using DataAcess.Services;
 using DataAcess.Interfaces;
-using WebHulk.Interfaces;
-using WebHulk.Services;
-using WebHulk.Areas.Admin.Interfaces;
+//
+using BusinessLogic;
+
+//
+using BusinessLogic.Basic.Interfaces;
+//
+using BusinessLogic.Admin.Services;
+using BusinessLogic.Admin.Interfaces;
+using BusinessLogic.Basic.Services;
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 

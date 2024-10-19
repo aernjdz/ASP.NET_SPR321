@@ -25,12 +25,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Areas\Admin\Models\Category\" />
     <Folder Include="Areas\Admin\Views\Categories\" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DataAcess\DataAcess.csproj" />
+    <ProjectReference Include="..\BusinessLogic\BusinessLogic.csproj" />
   </ItemGroup>
 
 </Project>
