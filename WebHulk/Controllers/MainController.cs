@@ -1,9 +1,5 @@
-﻿using AutoMapper;
-using AutoMapper.QueryableExtensions;
-using Microsoft.AspNetCore.Mvc;
-using DataAcess.Data;
+﻿using Microsoft.AspNetCore.Mvc;
 using BusinessLogic.Basic.Interfaces;
-using BusinessLogic.Basic.Models.Categories;
 
 namespace WebHulk.Controllers
 {

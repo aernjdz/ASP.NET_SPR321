@@ -1,5 +1,6 @@
 ﻿@model List<ProductItemViewModel>
 
+@inject ICartService CartService
 <div class="row">
     @foreach (var p in Model)
     {
@@ -39,8 +40,27 @@
                     }
                     @name
                     <p class="card-text text-success">@p.Price.ToString("C")</p>
+
+                    <div class="d-flex justify-content-between mt-3 ">
+                      
+                        <a asp-action="Info" asp-route-id="@p.Id" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-info-square"></i>
+                                Details
+                        </a>
+
+                        <a asp-controller="Cart" asp-action="Add" asp-route-productId="@p.Id" asp-route-returnUrl="@Context.Request.Path" class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-cart2"></i> Add to Cart 
+                        </a>
+                        
+                     
                     </div>
+                   
+                    </div>
+
+                
             </div>
+
+          
         </div>
     }
 </div>
