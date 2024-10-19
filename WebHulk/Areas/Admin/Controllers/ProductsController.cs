@@ -1,10 +1,5 @@
-﻿using AutoMapper;
+﻿
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using DataAcess.Data.Entities;
-using DataAcess.Data;
-using AutoMapper.QueryableExtensions;
-using Microsoft.EntityFrameworkCore;
 using BusinessLogic.Admin.Models.Products;
 using Microsoft.AspNetCore.Authorization;
 using DataAcess.Constants;

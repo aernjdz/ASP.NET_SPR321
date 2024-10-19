@@ -1,0 +1,100 @@
+﻿@model BusinessLogic.Basic.Models.Products.ProductItemViewModel
+
+@{
+    ViewData["Title"] = Model.Name; 
+}
+
+<div class="container custom-padding-top">
+<div class="row d-flex justify-content-center  justify-items-center">
+    <div>
+        <div class="card text-center">
+            <h1>Product Detail Information</h1>
+            @if (Model.Images?.Count > 1)
+            {
+                <div class="container col-sm-6 col-md-4">
+                   
+                <div id="carousel-@Model.Id" class="carousel slide m-3 " data-bs-ride="carousel">
+                    <div class="carousel-inner">
+                        @for (var i = 0; i < Model.Images.Count; i++)
+                        {
+                            var image = Model.Images[i];
+                            <div class="carousel-item @(i == 0 ? "active" : "")">
+                                <img src="@Url.Content("~/images/" + image)" alt="@Model.Name" class="d-block w-100" />
+                            </div>
+                        }
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#carousel-@Model.Id" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#carousel-@Model.Id" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                </div>
+                </div>
+            }
+            else
+            {
+                <div class="one-img m-3">
+                    <img src="@Url.Content("~/images/" + Model.Images?.FirstOrDefault())" alt="@Model.Name" class="img-fluid" />
+                </div>
+            }
+
+            <div class="card-body">
+                @{
+                    const int MAX_LEN = 31;
+                    var name = Model.Name.Length > MAX_LEN ? Model.Name.Substring(0, MAX_LEN) + "..." : Model.Name;
+                }
+                <h5 class="card-title">@name</h5>
+                <p class="card-text text-success">@Model.Price.ToString("C")</p>
+
+                <div class="d-flex justify-content-center mt-3">
+                    <a asp-action="Index" asp-route-id="@Model.Id" class="btn btn-secondary btn-sm me-2">
+                        <i class="bi bi-arrow-left"></i>
+                        Back
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+<style>
+
+    .custom-padding-top {
+        padding-top: 30px; /* 30px of top padding */
+       
+    }
+
+    .carousel-control-prev-icon,
+    .carousel-control-next-icon {
+        background-color: gray;
+        border-radius: 20%;
+    }
+    .carousel-item img {
+        max-height: 400px; /* Adjust based on your needs */
+        object-fit: cover; /* Ensures images cover the space without distortion */
+    }
+
+    .one-img img {
+        max-height: 400px; /* Adjust based on your needs */
+        object-fit: cover; /* Ensures images fit nicely in the designated area */
+        width: 100%; /* Makes the image responsive */
+    }
+
+    .card {
+        border: 1px solid #e0e0e0; /* Add a light border for better visibility */
+        border-radius: 8px; /* Rounded corners */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+    }
+
+    .card-title {
+        font-size: 1.5rem; /* Increase title font size */
+        font-weight: bold; /* Make title bold */
+    }
+
+    .text-success {
+        font-weight: bold; /* Make price text bold */
+    }
+</style>

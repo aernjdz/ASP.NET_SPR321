@@ -6,6 +6,12 @@ using BusinessLogic.Basic.Interfaces;
 using AutoMapper.QueryableExtensions;
 using BusinessLogic.Basic.Models.Categories;
 using Microsoft.EntityFrameworkCore;
+using DataAcess.Data.Entities;
+using System.Runtime.CompilerServices;
+using Microsoft.AspNetCore.Http;
+using System.Net.Http;
+
+
 
 namespace BusinessLogic.Basic.Services
 {
@@ -20,6 +26,16 @@ namespace BusinessLogic.Basic.Services
             _mapper = mapper;
         }
 
+        public async Task<ProductItemViewModel> GetInfoViewModelAsync(int id)
+        {
+
+            var productViewModel = await _context.Products
+              .Where(p => p.Id == id)
+              .ProjectTo<ProductItemViewModel>(_mapper.ConfigurationProvider)
+              .SingleOrDefaultAsync();
+
+            return productViewModel!;
+        }
         public ProductHomeViewModel GetProducts(ProductSearchViewModel search, string sortBy)
         {
             Stopwatch stopWatch = new Stopwatch();
@@ -86,6 +102,16 @@ namespace BusinessLogic.Basic.Services
                 Categories = categories,
             };
         }
+
+        public async Task<List<ProductItemViewModel>> GetProductsAsyncIds(List<int> ids)
+        {
+
+            return await _context.Products
+          .Where(p => ids.Contains(p.Id))
+          .ProjectTo<ProductItemViewModel>(_mapper.ConfigurationProvider)
+          .ToListAsync();
+
+        }
     }
     public class CategoryService : ICategoryService
     {
@@ -100,6 +126,65 @@ namespace BusinessLogic.Basic.Services
         public async Task<IEnumerable<CategoryItemViewModel>> GetAllCategoriesAsync()
         {
             return await _context.Categories.ProjectTo<CategoryItemViewModel>(_mapper.ConfigurationProvider).ToListAsync();
+        }
+    }
+
+    public class CartService : ICartService
+    {
+        private readonly HulkDbContext _hulkDbContext;
+        private readonly HttpContext? _httpContext;
+        private readonly IMapper _mapper;
+        private readonly IProductService service;
+
+        public CartService(HulkDbContext context,IHttpContextAccessor httpContextAccessor, IMapper mapper, IProductService service)
+        {
+            this._hulkDbContext = context;
+            this._httpContext = httpContextAccessor.HttpContext;
+            this._mapper = mapper;
+            this.service = service;
+        }
+        public void Add(int productId)
+        {
+            var productIds = _httpContext.Session.GetObject<List<int>>("cart");
+
+            if (productIds == null)  productIds = new List<int>(); 
+            
+            productIds.Add(productId);
+            _httpContext.Session.SetObject("cart", productIds);
+        }
+
+        public async Task<List<ProductItemViewModel>> GetProducts()
+        {
+            var productIds = _httpContext.Session.GetObject<List<int>>("cart");
+            List<ProductItemViewModel> products = new List<ProductItemViewModel>();
+
+            if (productIds != null) products =  await service.GetProductsAsyncIds(productIds);
+            
+            return products;
+        }
+
+        public bool IsInCart(int productId)
+        {
+            var productIds = _httpContext.Session.GetObject<List<int>>("cart");
+            if (productIds == null) { 
+                return false; 
+            }
+            return productIds.Contains(productId);
+        }
+
+
+        public void Remove(int productId)
+        {
+            var productIds = _httpContext.Session.GetObject<List<int>>("cart");
+            if (productIds == null)  productIds = new List<int>(); 
+            productIds.Remove(productId);
+            _httpContext.Session.SetObject("cart", productIds);
+        }
+
+        public int GetCartCount()
+        {
+            var cart = _httpContext.Session.GetObject<List<int>>("cart");
+            return cart?.Count ?? 0;
         }
     }
 }

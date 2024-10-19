@@ -22,6 +22,15 @@ namespace WebHulk.Controllers
             var model = _productService.GetProducts(search, sortBy);
             return View(model);
         }
+
+
+        [HttpGet]
+        public async Task<IActionResult>Info(int id)
+        {
+           var model = await _productService.GetInfoViewModelAsync(id);
+
+            return View(model);
+        }
     }
 }
 

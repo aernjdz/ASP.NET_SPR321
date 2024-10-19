@@ -17,6 +17,7 @@ using BusinessLogic.Basic.Interfaces;
 using BusinessLogic.Admin.Services;
 using BusinessLogic.Admin.Interfaces;
 using BusinessLogic.Basic.Services;
+using Microsoft.Extensions.Options;
 
 
 
@@ -39,8 +40,13 @@ builder.Services.AddScoped<IProductServiceAdmin, ProductServiceAdmin>();
 builder.Services.AddScoped<ICategoryServiceAdmin , CategoryServiceAdmin>();
 builder.Services.AddScoped<DataSeeder>();
 builder.Services.AddScoped<IImageWorker, ImageWorker>();
+builder.Services.AddScoped<ICartService, CartService>();
 
-
+builder.Services.AddSession(x =>
+{
+    x.Cookie.HttpOnly = true; 
+    x.Cookie.IsEssential = true;
+});
 builder.Services.AddIdentity<UserEntity, RoleEntity>(options =>
 {
     options.Password.RequireDigit = false;
@@ -75,6 +81,7 @@ if (!Directory.Exists(dirSave))
 
 app.UseRouting();
 
+
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(dirSave),
@@ -85,7 +92,7 @@ app.UseStaticFiles(new StaticFileOptions
 app.UseCookiePolicy();
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.UseSession();
 //app.MapControllerRoute(
 //    name: "default",
 //    pattern: "{controller=Main}/{action=Index}/{id?}");
