@@ -49,6 +49,7 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductServiceAdmin, ProductServiceAdmin>();
 builder.Services.AddScoped<ICategoryServiceAdmin , CategoryServiceAdmin>();
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<DataSeeder>();
 builder.Services.AddScoped<IImageWorker, ImageWorker>();
 builder.Services.AddScoped<ICartService, CartService>();

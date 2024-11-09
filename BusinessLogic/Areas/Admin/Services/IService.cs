@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 //
 using BusinessLogic.Admin.Models.Products;
 using BusinessLogic.Admin.Models.Category;
-//
+
 using DataAcess.Data.Entities;
-using DataAcess.Data;
+
 using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using BusinessLogic.Admin.Interfaces;
@@ -13,31 +13,41 @@ using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
 using System.Security.Claims;
 using DataAcess.Interfaces;
+using DataAcess.Data;
 
 namespace BusinessLogic.Admin.Services
 {
     public class ProductServiceAdmin : IProductServiceAdmin
     {
         private readonly Cloudinary cloudinary;
-        private readonly HulkDbContext _context;
+    
         private readonly IMapper _mapper;
         private readonly IImageWorker _worker;
-        public ProductServiceAdmin(HulkDbContext context, IMapper mapper, Cloudinary _cloudinary, IImageWorker worker)
+        private readonly IRepository<Product> _Productrepository;
+        private readonly IRepository<CategoryEntity> _categoryRepository;
+        private readonly IRepository<ProductImage> _ProductImageRepository;
+        public ProductServiceAdmin(HulkDbContext context,IMapper mapper, Cloudinary _cloudinary, IImageWorker worker, IRepository<Product> productrepo, IRepository<CategoryEntity> categoryrepo, IRepository<ProductImage> ProductImagerepo)
         {
+         
             cloudinary = _cloudinary;
-            _context = context;
+            _Productrepository = productrepo;
+            _categoryRepository = categoryrepo;
+            _ProductImageRepository = ProductImagerepo;
             _mapper = mapper;
             _worker = worker;
         }
 
         public async Task<List<ProductItemViewModel>> GetAllProductsAsync()
         {
-            return await _context.Products.ProjectTo<ProductItemViewModel>(_mapper.ConfigurationProvider).ToListAsync();
+            var products = _Productrepository.Get(includeProperties: new[] {"Category","ProductImages"});
+            return _mapper.Map<List<ProductItemViewModel>>(products);
         }
 
         public async Task<ProductCreateViewModel> GetCreateViewModelAsync()
         {
-            var categories = await _context.Categories.Select(x => new { Value = x.Id, Text = x.Name }).ToListAsync();
+
+            var categories = _categoryRepository.Get()
+              .Select(x => new { Value = x.Id, Text = x.Name }).ToList();
 
             return new ProductCreateViewModel
             {
@@ -47,15 +57,15 @@ namespace BusinessLogic.Admin.Services
 
         public async Task CreateProductAsync(ProductCreateViewModel model)
         {
+
             var product = new Product
             {
                 Name = model.Name,
                 Price = model.Price,
                 CategoryId = model.CategoryId,
             };
-
-            await _context.Products.AddAsync(product);
-            await _context.SaveChangesAsync();
+            _Productrepository.Insert(product);
+            _Productrepository.Save();
 
             if (model.Photos != null)
             {
@@ -75,11 +85,11 @@ namespace BusinessLogic.Admin.Services
                             public_id =uploadResult.PublicId,
                             Product = product,
                         };
-                        _context.ProductImages.Add(imgEntity);
+                       _ProductImageRepository.Insert(imgEntity);
                     }
                 }
 
-                    await _context.SaveChangesAsync();
+                     _ProductImageRepository.Save();
                 }
             }
 
@@ -87,25 +97,24 @@ namespace BusinessLogic.Admin.Services
 
         public async Task<ProductEditViewModel> GetEditViewModelAsync(int id)
         {
-            var model = await _context.Products
-                .ProjectTo<ProductEditViewModel>(_mapper.ConfigurationProvider)
-                .FirstOrDefaultAsync(x => x.Id == id);
+            var model = _Productrepository.Get(p => p.Id == id, includeProperties: new[] { "Category", "ProductImages" }).FirstOrDefault();
 
             if (model == null)
                 throw new Exception("Product not found");
 
-            var categories = await _context.Categories
-                .Select(x => new { Value = x.Id, Text = x.Name })
-                .ToListAsync();
+            var categories = _categoryRepository.Get()
+               .Select(x => new { Value = x.Id, Text = x.Name })
+               .ToList();
 
-            model.CategoryList = new SelectList(categories, "Value", "Text");
+            var editViewModel = _mapper.Map<ProductEditViewModel>(model);
+            editViewModel.CategoryList = new SelectList(categories, "Value", "Text");
 
-            return model;
+            return editViewModel;
         }
 
         public async Task EditProductAsync(ProductEditViewModel model)
         {
-            var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == model.Id);
+            var product = _Productrepository.GetByID(model.Id ,includeProperties: new[] { "Category", "ProductImages" });
 
             if (product == null)
                 throw new Exception("No product was found");
@@ -118,10 +127,7 @@ namespace BusinessLogic.Admin.Services
                 {
                     if (img.Length > 0)
                     {
-                        string ext = Path.GetExtension(img.FileName);
-                        string fName = Guid.NewGuid().ToString() + ext;
-                        var path = Path.Combine(Directory.GetCurrentDirectory(), "images", fName);
-
+       
                         var res = await _worker.ImageSave(img);
 
                         if (res.StatusCode == System.Net.HttpStatusCode.OK)
@@ -133,7 +139,8 @@ namespace BusinessLogic.Admin.Services
                                 public_id = res.PublicId,
                                 Product = product
                             };
-                            _context.ProductImages.Add(imgEntity);
+                           _ProductImageRepository.Insert(imgEntity);
+                           _ProductImageRepository.Save();
                         }
                         
                     }
@@ -142,74 +149,71 @@ namespace BusinessLogic.Admin.Services
 
             if (model.DeletedPhotoIds != null)
             {
-                var photos = _context.ProductImages
-                    .Where(pi => model.DeletedPhotoIds.Contains(pi.Id))
-                    .ToList();
+                var photos = product.ProductImages.Where(pi => model.DeletedPhotoIds.Contains(pi.Id)).ToList();
 
-               
+
+
 
                 foreach (var photo in photos)
                 {
                     await _worker.DeleteImageAsync(photo.public_id);
+                    _ProductImageRepository.Delete(photo.Id);
                 }
-                _context.ProductImages.RemoveRange(photos);
-
-                await _context.SaveChangesAsync();
+              
+                _ProductImageRepository.Save();
             }
-            
-            await _context.SaveChangesAsync();
+
+            _Productrepository.Save();
         }
 
         public async Task DeleteProductAsync(int id)
         {
-            var product = await _context.Products
-                .Include(p => p.ProductImages)
-                .SingleOrDefaultAsync(p => p.Id == id);
+           var product = _Productrepository.GetByID(id, includeProperties: new[] { "Category", "ProductImages" });
 
             if (product == null)
                 throw new Exception("Product not found");
 
             foreach (var img in product.ProductImages)
             {
-               
-
                 await _worker.DeleteImageAsync(img.public_id);
+                _ProductImageRepository.Delete(img.Id);
             }
 
-            _context.ProductImages.RemoveRange(product.ProductImages);
-            _context.Products.Remove(product);
-            await _context.SaveChangesAsync();
+            
+           _Productrepository.Delete(product);
+            _Productrepository.Save();
+            _ProductImageRepository.Save();
         }
     }
     public class CategoryServiceAdmin : ICategoryServiceAdmin
     {
+        private readonly IRepository<CategoryEntity> _CategoryRepo;
         private readonly Cloudinary cloudinary;
-        private readonly HulkDbContext _context;
+  
         private readonly IMapper _mapper;
         private readonly IImageWorker _worker;
        
-        public CategoryServiceAdmin(HulkDbContext context, IMapper mapper, IImageWorker worker, Cloudinary _cloudinary)
+        public CategoryServiceAdmin(HulkDbContext context, IMapper mapper, IImageWorker worker, Cloudinary _cloudinary, IRepository<CategoryEntity> categoryRepo)
         {
             cloudinary = _cloudinary;
-            _worker= worker;
-            _context = context;
+            _worker = worker;
+
             _mapper = mapper;
+            _CategoryRepo = categoryRepo;
         }
 
         public async Task<IEnumerable<CategoryItemViewModel>> GetAllCategoriesAsync()
         {
-            return await _context.Categories
-                .ProjectTo<CategoryItemViewModel>(_mapper.ConfigurationProvider)
-                .ToListAsync();
+            var categories = _CategoryRepo.Get().ToList();
+            return _mapper.Map<List<CategoryItemViewModel>>(categories); 
         }
-
-
 
         public async Task CreateCategoryAsync(CategoryCreateViewModel createModel)
         {
            
            
             var res = await _worker.ImageSave(createModel.Image);
+
             Console.WriteLine(res.SecureUrl.AbsoluteUri);
             if ( res.StatusCode == System.Net.HttpStatusCode.OK)
             {
@@ -219,9 +223,9 @@ namespace BusinessLogic.Admin.Services
                     Image = res.SecureUri.AbsoluteUri,
                     public_id = res.PublicId
                 };
-                _context.Categories.Add(category);
+                _CategoryRepo.Insert(category);
 
-                await _context.SaveChangesAsync();
+                _CategoryRepo.Save();
             }
           
             
@@ -229,19 +233,17 @@ namespace BusinessLogic.Admin.Services
 
         public async Task<CategoryEditViewModel> GetEditViewModelAsync(int id)
         {
-            var category = await _context.Categories
-                .ProjectTo<CategoryEditViewModel>(_mapper.ConfigurationProvider)
-                .FirstOrDefaultAsync(c => c.Id == id);
+            var category = _CategoryRepo.GetByID(id);
 
             if (category == null)
                 throw new KeyNotFoundException($"Category with id={id} not found.");
 
-            return category;
+            return _mapper.Map<CategoryEditViewModel>(category);
         }
 
         public async Task EditCategoryAsync(CategoryEditViewModel model)
         {
-            var category = await _context.Categories.FindAsync(model.Id);
+            var category =_CategoryRepo.GetByID(model.Id);
             if (category == null)
                 throw new KeyNotFoundException("Category not found.");
 
@@ -252,28 +254,29 @@ namespace BusinessLogic.Admin.Services
 
 
                 await _worker.DeleteImageAsync(category.public_id);
+
                 var res = await _worker.ImageSave(model.NewImage);
 
                 if (res.StatusCode == System.Net.HttpStatusCode.OK) {
                     category.Image = res.SecureUri.AbsoluteUri;
                     category.public_id = res.PublicId;
-                    _context.Categories.Update(category);
+                    _CategoryRepo.Update(category);
                 }
                 
             }
-            await _context.SaveChangesAsync();
+            _CategoryRepo.Save();
         }
 
         public async Task DeleteCategoryAsync(int id)
         {
-            var category = await _context.Categories.FindAsync(id);
+            var category = _CategoryRepo.GetByID(id);
             if (category == null)
                 throw new KeyNotFoundException("Category not found.");
 
            await  _worker.DeleteImageAsync(category.public_id);   
 
-            _context.Categories.Remove(category);
-            await _context.SaveChangesAsync();
+            _CategoryRepo.Delete(category);
+            _CategoryRepo.Save();
         }
     }
 }
