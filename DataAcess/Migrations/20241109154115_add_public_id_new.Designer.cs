@@ -3,6 +3,7 @@ using System;
 using DataAcess.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DataAcess.Migrations
 {
     [DbContext(typeof(HulkDbContext))]
-    partial class HulkDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241109154115_add_public_id_new")]
+    partial class add_public_id_new
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -41,10 +44,6 @@ namespace DataAcess.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
-
-                    b.Property<string>("public_id")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.HasKey("Id");
 

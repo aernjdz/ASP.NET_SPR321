@@ -1,7 +1,12 @@
-﻿namespace DataAcess.Interfaces
+﻿using CloudinaryDotNet.Actions;
+using Microsoft.AspNetCore.Http;
+
+namespace DataAcess.Interfaces
 {
     public interface IImageWorker
     {
-        string ImageSave(string url);
+        Task<ImageUploadResult> ImageSave(string url);
+        Task<bool> DeleteImageAsync(string publicId);
+        Task<ImageUploadResult> ImageSave(IFormFile file);
     }
 }

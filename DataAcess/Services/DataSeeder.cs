@@ -6,6 +6,7 @@ using DataAcess.Data.Entities;
 using DataAcess.Interfaces;
 using Bogus;
 using DataAcess.Constants;
+using Microsoft.EntityFrameworkCore.Query;
 namespace DataAcess.Services
 {
     public class DataSeeder
@@ -25,7 +26,7 @@ namespace DataAcess.Services
 
         }
 
-        public void SeedProducts()
+        public async Task SeedProducts()
         {
             if (_context.Products.Count() == 0)
             {
@@ -35,15 +36,18 @@ namespace DataAcess.Services
                 string url = "https://picsum.photos/1200/800?category";
                 foreach (var categoryName in listCategories)
                 {
-                    var imgName = _imageWorker.ImageSave(url);
-                    if (!string.IsNullOrEmpty(imgName))
+                    var res = await _imageWorker.ImageSave(url);
+                    Console.WriteLine(res.SecureUri.AbsoluteUri);
+                    if (!string.IsNullOrEmpty(res.SecureUri.AbsoluteUri))
                     {
                         var catEntity = new CategoryEntity
                         {
                             Name = categoryName,
-                            Image = imgName,
+                            Image = res.SecureUri.AbsoluteUri,
+                            public_id = res.PublicId,
                         };
                         _context.Add(catEntity);
+                        
                         _context.SaveChanges();
                     }
                 }
@@ -57,7 +61,7 @@ namespace DataAcess.Services
 
                 url = "https://picsum.photos/1200/800?product";
 
-                var products = fakerProduct.GenerateLazy(105);
+                var products = fakerProduct.GenerateLazy(20);
                 Random r = new Random();
 
                 foreach (var product in products)
@@ -67,11 +71,12 @@ namespace DataAcess.Services
                     int imageCount = r.Next(3, 5);
                     for (int i = 0; i < imageCount; i++)
                     {
-                        var imageName = _imageWorker.ImageSave(url);
+                        var res = await _imageWorker.ImageSave(url);
                         var imageProduct = new ProductImage
                         {
                             Product = product,
-                            Image = imageName,
+                            Image = res.SecureUri.AbsoluteUri,
+                            public_id= res.PublicId,
                             Priotity = i
                         };
                         _context.Add(imageProduct);

@@ -9,18 +9,25 @@ using DataAcess.Data;
 using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using BusinessLogic.Admin.Interfaces;
+using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
+using System.Security.Claims;
+using DataAcess.Interfaces;
 
 namespace BusinessLogic.Admin.Services
 {
     public class ProductServiceAdmin : IProductServiceAdmin
     {
+        private readonly Cloudinary cloudinary;
         private readonly HulkDbContext _context;
         private readonly IMapper _mapper;
-
-        public ProductServiceAdmin(HulkDbContext context, IMapper mapper)
+        private readonly IImageWorker _worker;
+        public ProductServiceAdmin(HulkDbContext context, IMapper mapper, Cloudinary _cloudinary, IImageWorker worker)
         {
+            cloudinary = _cloudinary;
             _context = context;
             _mapper = mapper;
+            _worker = worker;
         }
 
         public async Task<List<ProductItemViewModel>> GetAllProductsAsync()
@@ -55,24 +62,28 @@ namespace BusinessLogic.Admin.Services
                 int i = 0;
                 foreach (var img in model.Photos)
                 {
-                    string ext = Path.GetExtension(img.FileName);
-                    string fName = Guid.NewGuid().ToString() + ext;
-                    var path = Path.Combine(Directory.GetCurrentDirectory(), "images", fName);
+                    
 
-                    using (var fs = new FileStream(path, FileMode.Create))
-                        await img.CopyToAsync(fs);
-
-                    var imgEntity = new ProductImage
+                    var uploadResult = await _worker.ImageSave(img);
+                    if (uploadResult.StatusCode == System.Net.HttpStatusCode.OK)
                     {
-                        Image = fName,
-                        Priotity = i++,
-                        Product = product,
-                    };
-                    _context.ProductImages.Add(imgEntity);
+                        Console.WriteLine(uploadResult.SecureUrl.AbsoluteUri);
+                        var imgEntity = new ProductImage
+                        {
+                            Image = uploadResult.SecureUrl.AbsoluteUri,
+                            Priotity = i++,
+                            public_id =uploadResult.PublicId,
+                            Product = product,
+                        };
+                        _context.ProductImages.Add(imgEntity);
+                    }
+                }
+
                     await _context.SaveChangesAsync();
                 }
             }
-        }
+
+        
 
         public async Task<ProductEditViewModel> GetEditViewModelAsync(int id)
         {
@@ -111,15 +122,20 @@ namespace BusinessLogic.Admin.Services
                         string fName = Guid.NewGuid().ToString() + ext;
                         var path = Path.Combine(Directory.GetCurrentDirectory(), "images", fName);
 
-                        using (var fs = new FileStream(path, FileMode.Create))
-                            await img.CopyToAsync(fs);
+                        var res = await _worker.ImageSave(img);
 
-                        var imgEntity = new ProductImage
+                        if (res.StatusCode == System.Net.HttpStatusCode.OK)
                         {
-                            Image = fName,
-                            Product = product
-                        };
-                        _context.ProductImages.Add(imgEntity);
+
+                            var imgEntity = new ProductImage
+                            {
+                                Image = res.SecureUri.AbsoluteUri,
+                                public_id = res.PublicId,
+                                Product = product
+                            };
+                            _context.ProductImages.Add(imgEntity);
+                        }
+                        
                     }
                 }
             }
@@ -130,14 +146,17 @@ namespace BusinessLogic.Admin.Services
                     .Where(pi => model.DeletedPhotoIds.Contains(pi.Id))
                     .ToList();
 
-                _context.ProductImages.RemoveRange(photos);
+               
 
                 foreach (var photo in photos)
                 {
-                    var path = Path.Combine(Directory.GetCurrentDirectory(), "images", photo.Image);
-                    if (File.Exists(path)) File.Delete(path);
+                    await _worker.DeleteImageAsync(photo.public_id);
                 }
+                _context.ProductImages.RemoveRange(photos);
+
+                await _context.SaveChangesAsync();
             }
+            
             await _context.SaveChangesAsync();
         }
 
@@ -152,8 +171,9 @@ namespace BusinessLogic.Admin.Services
 
             foreach (var img in product.ProductImages)
             {
-                var path = Path.Combine(Directory.GetCurrentDirectory(), "images", img.Image);
-                if (File.Exists(path)) File.Delete(path);
+               
+
+                await _worker.DeleteImageAsync(img.public_id);
             }
 
             _context.ProductImages.RemoveRange(product.ProductImages);
@@ -163,11 +183,15 @@ namespace BusinessLogic.Admin.Services
     }
     public class CategoryServiceAdmin : ICategoryServiceAdmin
     {
+        private readonly Cloudinary cloudinary;
         private readonly HulkDbContext _context;
         private readonly IMapper _mapper;
-
-        public CategoryServiceAdmin(HulkDbContext context, IMapper mapper)
+        private readonly IImageWorker _worker;
+       
+        public CategoryServiceAdmin(HulkDbContext context, IMapper mapper, IImageWorker worker, Cloudinary _cloudinary)
         {
+            cloudinary = _cloudinary;
+            _worker= worker;
             _context = context;
             _mapper = mapper;
         }
@@ -179,26 +203,28 @@ namespace BusinessLogic.Admin.Services
                 .ToListAsync();
         }
 
-      
+
 
         public async Task CreateCategoryAsync(CategoryCreateViewModel createModel)
         {
-            string ext = Path.GetExtension(createModel.Image.FileName);
-            string fName = Guid.NewGuid().ToString() + ext;
-
-            var path = Path.Combine(Directory.GetCurrentDirectory(), "images", fName);
-
-            using (var stream = new FileStream(path, FileMode.Create))
-                await createModel.Image.CopyToAsync(stream);
-
-            var category = new CategoryEntity
+           
+           
+            var res = await _worker.ImageSave(createModel.Image);
+            Console.WriteLine(res.SecureUrl.AbsoluteUri);
+            if ( res.StatusCode == System.Net.HttpStatusCode.OK)
             {
-                Name = createModel.Name,
-                Image = fName
-            };
+                var category = new CategoryEntity
+                {
+                    Name = createModel.Name,
+                    Image = res.SecureUri.AbsoluteUri,
+                    public_id = res.PublicId
+                };
+                _context.Categories.Add(category);
 
-            _context.Categories.Add(category);
-            await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
+            }
+          
+            
         }
 
         public async Task<CategoryEditViewModel> GetEditViewModelAsync(int id)
@@ -223,20 +249,18 @@ namespace BusinessLogic.Admin.Services
 
             if (model.NewImage != null)
             {
-                var currentImgPath = Path.Combine(Directory.GetCurrentDirectory(), "images", category.Image);
-                if (File.Exists(currentImgPath))
-                    File.Delete(currentImgPath);
 
-                var newImgName = Guid.NewGuid().ToString() + Path.GetExtension(model.NewImage.FileName);
-                var newImgPath = Path.Combine(Directory.GetCurrentDirectory(), "images", newImgName);
 
-                using (var stream = new FileStream(newImgPath, FileMode.Create))
-                    await model.NewImage.CopyToAsync(stream);
+                await _worker.DeleteImageAsync(category.public_id);
+                var res = await _worker.ImageSave(model.NewImage);
 
-                category.Image = newImgName;
+                if (res.StatusCode == System.Net.HttpStatusCode.OK) {
+                    category.Image = res.SecureUri.AbsoluteUri;
+                    category.public_id = res.PublicId;
+                    _context.Categories.Update(category);
+                }
+                
             }
-
-            _context.Categories.Update(category);
             await _context.SaveChangesAsync();
         }
 
@@ -246,9 +270,7 @@ namespace BusinessLogic.Admin.Services
             if (category == null)
                 throw new KeyNotFoundException("Category not found.");
 
-            var imgPath = Path.Combine(Directory.GetCurrentDirectory(), "images", category.Image);
-            if (File.Exists(imgPath))
-                File.Delete(imgPath);
+           await  _worker.DeleteImageAsync(category.public_id);   
 
             _context.Categories.Remove(category);
             await _context.SaveChangesAsync();

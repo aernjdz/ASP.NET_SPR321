@@ -10,5 +10,6 @@ namespace DataAcess.Data.Entities
         public int Id { get; set; }
         public string Name { get; set; } = null!;
         public string Image { get; set; } = String.Empty;
+        public string public_id { get; set; } = string.Empty;
     }
 }
