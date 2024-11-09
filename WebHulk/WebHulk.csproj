@@ -7,10 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Remove="wwwroot\images\input.png" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="AutoMapper" Version="13.0.1" />
     <PackageReference Include="FluentValidation" Version="11.10.0" />
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
@@ -18,10 +14,6 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="wwwroot\images\input.png" />
   </ItemGroup>
 
   <ItemGroup>

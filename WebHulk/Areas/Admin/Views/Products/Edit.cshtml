@@ -45,8 +45,10 @@
             <div id="imageContainer" class="d-flex justify-content-evenly flex-wrap">
                 @foreach (var existingPhoto in Model.Images)
                 {
+                    { Console.WriteLine(existingPhoto.Name); }
                     <div class="img_container">
-                        <img class="img_preview" src="@Url.Content(existingPhoto.Name)" />
+
+                        <img class="img_preview" src="@existingPhoto.Name" />
                         <button type="button" class="img_kaban-delete" data-photo-id="@existingPhoto.Id"></button>
                     </div>
                 }
