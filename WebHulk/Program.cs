@@ -18,14 +18,17 @@ using BusinessLogic.Admin.Services;
 using BusinessLogic.Admin.Interfaces;
 using BusinessLogic.Basic.Services;
 using Microsoft.Extensions.Options;
+using CloudinaryDotNet;
 
 
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<HulkDbContext>(opt =>
-    opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+/*builder.Services.AddDbContext<HulkDbContext>(opt =>
+    opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));*/
 
+builder.Services.AddDbContext<HulkDbContext>(opt =>
+    opt.UseNpgsql(builder.Configuration.GetConnectionString("WebConnection")));
 
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblies(AppDomain.CurrentDomain.GetAssemblies());
@@ -33,11 +36,20 @@ builder.Services.AddValidatorsFromAssemblies(AppDomain.CurrentDomain.GetAssembli
 builder.Services.AddControllersWithViews();
 
 
+builder.Services.AddSingleton(new Cloudinary(new Account(
+             builder.Configuration["Cloudinary:CloudName"],
+
+             builder.Configuration["Cloudinary:ApiKey"],
+             builder.Configuration["Cloudinary:ApiSecret"]
+         )));
+
+
 builder.Services.AddAutoMapper(typeof(AppMapProfile));
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductServiceAdmin, ProductServiceAdmin>();
 builder.Services.AddScoped<ICategoryServiceAdmin , CategoryServiceAdmin>();
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<DataSeeder>();
 builder.Services.AddScoped<IImageWorker, ImageWorker>();
 builder.Services.AddScoped<ICartService, CartService>();
@@ -113,11 +125,12 @@ app.UseEndpoints(endpoints =>
 
 using (var scope = app.Services.CreateScope())
 {
+
     var dbContext = scope.ServiceProvider.GetRequiredService<HulkDbContext>();
     //dbContext.Database.EnsureDeleted();
     dbContext.Database.Migrate();
     var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
-    seeder.SeedProducts();
+    await seeder.SeedProducts();
     await seeder.SeedRolesAndUsers();
 }
 

@@ -3,34 +3,51 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 //
 using BusinessLogic.Admin.Models.Products;
 using BusinessLogic.Admin.Models.Category;
-//
+
 using DataAcess.Data.Entities;
-using DataAcess.Data;
+
 using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using BusinessLogic.Admin.Interfaces;
+using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
+using System.Security.Claims;
+using DataAcess.Interfaces;
+using DataAcess.Data;
 
 namespace BusinessLogic.Admin.Services
 {
     public class ProductServiceAdmin : IProductServiceAdmin
     {
-        private readonly HulkDbContext _context;
+        private readonly Cloudinary cloudinary;
+    
         private readonly IMapper _mapper;
-
-        public ProductServiceAdmin(HulkDbContext context, IMapper mapper)
+        private readonly IImageWorker _worker;
+        private readonly IRepository<Product> _Productrepository;
+        private readonly IRepository<CategoryEntity> _categoryRepository;
+        private readonly IRepository<ProductImage> _ProductImageRepository;
+        public ProductServiceAdmin(HulkDbContext context,IMapper mapper, Cloudinary _cloudinary, IImageWorker worker, IRepository<Product> productrepo, IRepository<CategoryEntity> categoryrepo, IRepository<ProductImage> ProductImagerepo)
         {
-            _context = context;
+         
+            cloudinary = _cloudinary;
+            _Productrepository = productrepo;
+            _categoryRepository = categoryrepo;
+            _ProductImageRepository = ProductImagerepo;
             _mapper = mapper;
+            _worker = worker;
         }
 
         public async Task<List<ProductItemViewModel>> GetAllProductsAsync()
         {
-            return await _context.Products.ProjectTo<ProductItemViewModel>(_mapper.ConfigurationProvider).ToListAsync();
+            var products = _Productrepository.Get(includeProperties: new[] {"Category","ProductImages"});
+            return _mapper.Map<List<ProductItemViewModel>>(products);
         }
 
         public async Task<ProductCreateViewModel> GetCreateViewModelAsync()
         {
-            var categories = await _context.Categories.Select(x => new { Value = x.Id, Text = x.Name }).ToListAsync();
+
+            var categories = _categoryRepository.Get()
+              .Select(x => new { Value = x.Id, Text = x.Name }).ToList();
 
             return new ProductCreateViewModel
             {
@@ -40,61 +57,64 @@ namespace BusinessLogic.Admin.Services
 
         public async Task CreateProductAsync(ProductCreateViewModel model)
         {
+
             var product = new Product
             {
                 Name = model.Name,
                 Price = model.Price,
                 CategoryId = model.CategoryId,
             };
-
-            await _context.Products.AddAsync(product);
-            await _context.SaveChangesAsync();
+            _Productrepository.Insert(product);
+            _Productrepository.Save();
 
             if (model.Photos != null)
             {
                 int i = 0;
                 foreach (var img in model.Photos)
                 {
-                    string ext = Path.GetExtension(img.FileName);
-                    string fName = Guid.NewGuid().ToString() + ext;
-                    var path = Path.Combine(Directory.GetCurrentDirectory(), "images", fName);
+                    
 
-                    using (var fs = new FileStream(path, FileMode.Create))
-                        await img.CopyToAsync(fs);
-
-                    var imgEntity = new ProductImage
+                    var uploadResult = await _worker.ImageSave(img);
+                    if (uploadResult.StatusCode == System.Net.HttpStatusCode.OK)
                     {
-                        Image = fName,
-                        Priotity = i++,
-                        Product = product,
-                    };
-                    _context.ProductImages.Add(imgEntity);
-                    await _context.SaveChangesAsync();
+                        Console.WriteLine(uploadResult.SecureUrl.AbsoluteUri);
+                        var imgEntity = new ProductImage
+                        {
+                            Image = uploadResult.SecureUrl.AbsoluteUri,
+                            Priotity = i++,
+                            public_id =uploadResult.PublicId,
+                            Product = product,
+                        };
+                       _ProductImageRepository.Insert(imgEntity);
+                    }
+                }
+
+                     _ProductImageRepository.Save();
                 }
             }
-        }
+
+        
 
         public async Task<ProductEditViewModel> GetEditViewModelAsync(int id)
         {
-            var model = await _context.Products
-                .ProjectTo<ProductEditViewModel>(_mapper.ConfigurationProvider)
-                .FirstOrDefaultAsync(x => x.Id == id);
+            var model = _Productrepository.Get(p => p.Id == id, includeProperties: new[] { "Category", "ProductImages" }).FirstOrDefault();
 
             if (model == null)
                 throw new Exception("Product not found");
 
-            var categories = await _context.Categories
-                .Select(x => new { Value = x.Id, Text = x.Name })
-                .ToListAsync();
+            var categories = _categoryRepository.Get()
+               .Select(x => new { Value = x.Id, Text = x.Name })
+               .ToList();
 
-            model.CategoryList = new SelectList(categories, "Value", "Text");
+            var editViewModel = _mapper.Map<ProductEditViewModel>(model);
+            editViewModel.CategoryList = new SelectList(categories, "Value", "Text");
 
-            return model;
+            return editViewModel;
         }
 
         public async Task EditProductAsync(ProductEditViewModel model)
         {
-            var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == model.Id);
+            var product = _Productrepository.GetByID(model.Id ,includeProperties: new[] { "Category", "ProductImages" });
 
             if (product == null)
                 throw new Exception("No product was found");
@@ -107,115 +127,123 @@ namespace BusinessLogic.Admin.Services
                 {
                     if (img.Length > 0)
                     {
-                        string ext = Path.GetExtension(img.FileName);
-                        string fName = Guid.NewGuid().ToString() + ext;
-                        var path = Path.Combine(Directory.GetCurrentDirectory(), "images", fName);
+       
+                        var res = await _worker.ImageSave(img);
 
-                        using (var fs = new FileStream(path, FileMode.Create))
-                            await img.CopyToAsync(fs);
-
-                        var imgEntity = new ProductImage
+                        if (res.StatusCode == System.Net.HttpStatusCode.OK)
                         {
-                            Image = fName,
-                            Product = product
-                        };
-                        _context.ProductImages.Add(imgEntity);
+
+                            var imgEntity = new ProductImage
+                            {
+                                Image = res.SecureUri.AbsoluteUri,
+                                public_id = res.PublicId,
+                                Product = product
+                            };
+                           _ProductImageRepository.Insert(imgEntity);
+                           _ProductImageRepository.Save();
+                        }
+                        
                     }
                 }
             }
 
             if (model.DeletedPhotoIds != null)
             {
-                var photos = _context.ProductImages
-                    .Where(pi => model.DeletedPhotoIds.Contains(pi.Id))
-                    .ToList();
+                var photos = product.ProductImages.Where(pi => model.DeletedPhotoIds.Contains(pi.Id)).ToList();
 
-                _context.ProductImages.RemoveRange(photos);
+
+
 
                 foreach (var photo in photos)
                 {
-                    var path = Path.Combine(Directory.GetCurrentDirectory(), "images", photo.Image);
-                    if (File.Exists(path)) File.Delete(path);
+                    await _worker.DeleteImageAsync(photo.public_id);
+                    _ProductImageRepository.Delete(photo.Id);
                 }
+              
+                _ProductImageRepository.Save();
             }
-            await _context.SaveChangesAsync();
+
+            _Productrepository.Save();
         }
 
         public async Task DeleteProductAsync(int id)
         {
-            var product = await _context.Products
-                .Include(p => p.ProductImages)
-                .SingleOrDefaultAsync(p => p.Id == id);
+           var product = _Productrepository.GetByID(id, includeProperties: new[] { "Category", "ProductImages" });
 
             if (product == null)
                 throw new Exception("Product not found");
 
             foreach (var img in product.ProductImages)
             {
-                var path = Path.Combine(Directory.GetCurrentDirectory(), "images", img.Image);
-                if (File.Exists(path)) File.Delete(path);
+                await _worker.DeleteImageAsync(img.public_id);
+                _ProductImageRepository.Delete(img.Id);
             }
 
-            _context.ProductImages.RemoveRange(product.ProductImages);
-            _context.Products.Remove(product);
-            await _context.SaveChangesAsync();
+            
+           _Productrepository.Delete(product);
+            _Productrepository.Save();
+            _ProductImageRepository.Save();
         }
     }
     public class CategoryServiceAdmin : ICategoryServiceAdmin
     {
-        private readonly HulkDbContext _context;
+        private readonly IRepository<CategoryEntity> _CategoryRepo;
+        private readonly Cloudinary cloudinary;
+  
         private readonly IMapper _mapper;
-
-        public CategoryServiceAdmin(HulkDbContext context, IMapper mapper)
+        private readonly IImageWorker _worker;
+       
+        public CategoryServiceAdmin(HulkDbContext context, IMapper mapper, IImageWorker worker, Cloudinary _cloudinary, IRepository<CategoryEntity> categoryRepo)
         {
-            _context = context;
+            cloudinary = _cloudinary;
+            _worker = worker;
+
             _mapper = mapper;
+            _CategoryRepo = categoryRepo;
         }
 
         public async Task<IEnumerable<CategoryItemViewModel>> GetAllCategoriesAsync()
         {
-            return await _context.Categories
-                .ProjectTo<CategoryItemViewModel>(_mapper.ConfigurationProvider)
-                .ToListAsync();
+            var categories = _CategoryRepo.Get().ToList();
+            return _mapper.Map<List<CategoryItemViewModel>>(categories); 
         }
-
-      
 
         public async Task CreateCategoryAsync(CategoryCreateViewModel createModel)
         {
-            string ext = Path.GetExtension(createModel.Image.FileName);
-            string fName = Guid.NewGuid().ToString() + ext;
+           
+           
+            var res = await _worker.ImageSave(createModel.Image);
 
-            var path = Path.Combine(Directory.GetCurrentDirectory(), "images", fName);
-
-            using (var stream = new FileStream(path, FileMode.Create))
-                await createModel.Image.CopyToAsync(stream);
-
-            var category = new CategoryEntity
+            Console.WriteLine(res.SecureUrl.AbsoluteUri);
+            if ( res.StatusCode == System.Net.HttpStatusCode.OK)
             {
-                Name = createModel.Name,
-                Image = fName
-            };
+                var category = new CategoryEntity
+                {
+                    Name = createModel.Name,
+                    Image = res.SecureUri.AbsoluteUri,
+                    public_id = res.PublicId
+                };
+                _CategoryRepo.Insert(category);
 
-            _context.Categories.Add(category);
-            await _context.SaveChangesAsync();
+                _CategoryRepo.Save();
+            }
+          
+            
         }
 
         public async Task<CategoryEditViewModel> GetEditViewModelAsync(int id)
         {
-            var category = await _context.Categories
-                .ProjectTo<CategoryEditViewModel>(_mapper.ConfigurationProvider)
-                .FirstOrDefaultAsync(c => c.Id == id);
+            var category = _CategoryRepo.GetByID(id);
 
             if (category == null)
                 throw new KeyNotFoundException($"Category with id={id} not found.");
 
-            return category;
+            return _mapper.Map<CategoryEditViewModel>(category);
         }
 
         public async Task EditCategoryAsync(CategoryEditViewModel model)
         {
-            var category = await _context.Categories.FindAsync(model.Id);
+            var category =_CategoryRepo.GetByID(model.Id);
             if (category == null)
                 throw new KeyNotFoundException("Category not found.");
 
@@ -223,35 +251,32 @@ namespace BusinessLogic.Admin.Services
 
             if (model.NewImage != null)
             {
-                var currentImgPath = Path.Combine(Directory.GetCurrentDirectory(), "images", category.Image);
-                if (File.Exists(currentImgPath))
-                    File.Delete(currentImgPath);
 
-                var newImgName = Guid.NewGuid().ToString() + Path.GetExtension(model.NewImage.FileName);
-                var newImgPath = Path.Combine(Directory.GetCurrentDirectory(), "images", newImgName);
 
-                using (var stream = new FileStream(newImgPath, FileMode.Create))
-                    await model.NewImage.CopyToAsync(stream);
+                await _worker.DeleteImageAsync(category.public_id);
 
-                category.Image = newImgName;
+                var res = await _worker.ImageSave(model.NewImage);
+
+                if (res.StatusCode == System.Net.HttpStatusCode.OK) {
+                    category.Image = res.SecureUri.AbsoluteUri;
+                    category.public_id = res.PublicId;
+                    _CategoryRepo.Update(category);
+                }
+                
             }
-
-            _context.Categories.Update(category);
-            await _context.SaveChangesAsync();
+            _CategoryRepo.Save();
         }
 
         public async Task DeleteCategoryAsync(int id)
         {
-            var category = await _context.Categories.FindAsync(id);
+            var category = _CategoryRepo.GetByID(id);
             if (category == null)
                 throw new KeyNotFoundException("Category not found.");
 
-            var imgPath = Path.Combine(Directory.GetCurrentDirectory(), "images", category.Image);
-            if (File.Exists(imgPath))
-                File.Delete(imgPath);
+           await  _worker.DeleteImageAsync(category.public_id);   
 
-            _context.Categories.Remove(category);
-            await _context.SaveChangesAsync();
+            _CategoryRepo.Delete(category);
+            _CategoryRepo.Save();
         }
     }
 }

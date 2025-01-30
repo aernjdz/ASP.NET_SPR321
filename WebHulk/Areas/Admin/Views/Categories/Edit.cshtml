@@ -29,7 +29,7 @@
         @if (!string.IsNullOrEmpty(Model.Image))
         {
             <div class="form-group mt-2">
-                <img src="@Url.Content("~/images/" + Model.Image)" alt="Image" style="max-width: 15%; height: auto;" />
+                <img src="@Url.Content(Model.Image)" alt="Image" style="max-width: 15%; height: auto;" />
             </div>
         }
 

@@ -44,7 +44,7 @@
                                     <td>@p.Name</td>
                                     <td>@p.Price $</td>
                                     <td>
-                                        <img src="/images/@p.Images?.FirstOrDefault()" alt="@p.Name" style="max-width: 80px;" />
+                                        <img src="@p.Images?.FirstOrDefault()" alt="@p.Name" style="max-width: 80px;" />
                                     </td>
                                     <td>
                                         <a asp-action="Edit" asp-route-id="@p.Id" class="btn btn-outline-secondary btn-sm">

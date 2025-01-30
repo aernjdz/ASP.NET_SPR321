@@ -29,7 +29,7 @@ namespace BusinessLogic
               .Select(pi => new BusinessLogic.Admin.Models.Products.ProductImageViewModel
               {
                   Id = pi.Id,
-                  Name = "/images/" + pi.Image,
+                  Name =  pi.Image,
                   Priority = pi.Priotity
               }).ToList()))
                     .ForMember(x => x.Price, opt => opt.MapFrom(x => x.Price.ToString(new CultureInfo("uk-UA"))));

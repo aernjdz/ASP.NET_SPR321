@@ -39,7 +39,7 @@
                                     <td>@p.Name</td>
                                     <td>@p.Price $</td>
                                     <td>
-                                        <img src="/images/@p.Images?.FirstOrDefault()" alt="@p.Name" style="max-width: 80px;" />
+                                        <img src="@Url.Content(p.Images?.FirstOrDefault())" alt="@p.Name" style="max-width: 80px;" />
                                     </td>
                                     <td>
                                         <a asp-action="Delete" asp-route-id="@p.Id" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal-@p.Id">

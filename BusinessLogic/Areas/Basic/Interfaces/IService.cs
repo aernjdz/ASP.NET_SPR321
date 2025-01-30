@@ -13,7 +13,7 @@ namespace BusinessLogic.Basic.Interfaces
 
         Task<ProductItemViewModel> GetInfoViewModelAsync(int id);
 
-        Task<List<ProductItemViewModel>> GetProductsAsyncIds(List<int> ids);
+        List<ProductItemViewModel> GetProductsIds(List<int> ids);
        
     }
     public interface ICategoryService
@@ -22,7 +22,7 @@ namespace BusinessLogic.Basic.Interfaces
     }
     public interface ICartService
     {
-        Task<List<ProductItemViewModel>> GetProducts();
+        List<ProductItemViewModel> GetProducts();
         void Add(int productId);
         void Remove(int productId);
         bool IsInCart(int productId);
