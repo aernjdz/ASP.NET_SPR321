@@ -1,0 +1,32 @@
+services:
+  webhulk:
+    build:
+      context: .
+      dockerfile: WebHulk/Dockerfile
+    image: webhulk:dev
+    ports:
+      - "3030:8081"
+    depends_on:
+      - db
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=db;Database=MyAppDb;Username=postgres;Password=123456;
+    networks:
+      - mynetwork
+  db:
+    image: postgres:latest
+    environment:
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=MyAppDb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - mynetwork
+networks:
+  mynetwork:
+    driver: bridge
+volumes:
+  postgres_data:

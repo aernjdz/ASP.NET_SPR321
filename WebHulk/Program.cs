@@ -24,11 +24,11 @@ using CloudinaryDotNet;
 
 var builder = WebApplication.CreateBuilder(args);
 
-/*builder.Services.AddDbContext<HulkDbContext>(opt =>
-    opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));*/
-
 builder.Services.AddDbContext<HulkDbContext>(opt =>
-    opt.UseNpgsql(builder.Configuration.GetConnectionString("WebConnection")));
+    opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+//builder.Services.AddDbContext<HulkDbContext>(opt =>
+//    opt.UseNpgsql(builder.Configuration.GetConnectionString("WebConnection")));
 
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblies(AppDomain.CurrentDomain.GetAssemblies());
